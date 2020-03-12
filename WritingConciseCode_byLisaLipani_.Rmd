@@ -1,0 +1,253 @@
+---
+title: "Using functions, functionals, for loops, and dplyr to write concise code"
+author: "Lisa Lipani"
+date: "3/29/2019"
+output: html_document
+---
+
+## Reading in files
+
+* Reading in files individually is cumbersome and can lead to errors.
+
+```{r, echo=TRUE}
+at0H0_1_oldway <- read.delim("/users/lisalipani/Documents/School/Graduate/Research/NSP/output/RainbowAcoustics/at0H0_1_acoustics", col.names=c("voicelessFrames", "F0","harmonicsToNoise","zScoreRMS","start","end"), sep ="\t", header = FALSE, na.strings = "--undefined--")
+
+at0H0_2_oldway <- read.delim("/users/lisalipani/Documents/School/Graduate/Research/NSP/output/RainbowAcoustics/at0H0_2_acoustics", col.names=c("voicelessFrames", "F0","harmonicsToNoise","zScoreRMS","start","end"), sep ="\t", header = FALSE, na.strings = "--undefined--")
+
+# etc.
+```
+
+## Reading in files concisely
+
+* A more concise way to read in multiple files is to use functionals.
+
+### Make a vector
+
+* First, we'll get the names of the filepaths with ```Sys.glob```. This creates a vector of the filepath names.
+
+```{r}
+# read in all file paths in folder to a list
+files <- Sys.glob("/users/lisalipani/Documents/School/Graduate/Research/NSP/output/RainbowAcoustics/*")
+head(files)
+```
+
+### Using ```lapply```
+* We can use ```lapply``` to create a **list** of **data frames** for each file that we read in.
+* First, let's learn about ```lapply```.
+* ```lapply``` takes two arguments, a list or vector and a function, and it applies the function to the list or vector
+    + A list can contain values of different types.
+    + A vector only contains elements of one type.
+  
+### Writing functions
+* Since ```lapply``` takes a function as its argument, we'll need to supply it with a function.
+* When you write a function, you'll specify the arguments of your function in parenthesis, and what you want the function to do will go in curly brackets.
+* Let's say you wanted to create a function that added two numbers together:
+
+```{r}
+addition <- function(x, y){
+  return(x + y)
+}
+
+addition(2, 1)
+```
+
+* We've created a function called ```addition``` that takes arguments ```x``` and ```y``` and then does what you have specified in the curly brackets. 
+* ```return``` isn't totally necessary here
+
+### Using ```lapply``` and your function together
+
+* ```lapply``` is a **functional**
+    + A functional is a function that takes a function as an argument and returns a vector as output
+    + ```sapply``` returns a vector, matrix, or array
+    + ```vapply``` works the same way as ```sapply``` but you specify what you want R to return (a vector, matrix, or array)
+* Here, ```lapply``` takes the vector named ```files``` and applies a function we wrote.
+* The function we wrote takes one argument, ```i```
+
+```{r}
+# applies the function we define to everything in the list 'files'
+all_files_list <- lapply(files, function(i){
+  read.delim(i, col.names=c("voicelessFrames", "F0", "harmonicsToNoise", "zScoreRMS", "start", "end"), sep ="\t", header = FALSE, na.strings = "--undefined--")
+})
+```
+
+* You could also name the function first, and then use it as an argument to ```lapply```
+```{r}
+# another way
+# named function
+function_to_read_files <- function(i){
+read.delim(i, col.names=c("voicelessFrames", "F0", "harmonicsToNoise", "zScoreRMS", "start", "end"), sep ="\t", header = FALSE, na.strings = "--undefined--")
+}
+
+all_files_list_2 <- lapply(files, function_to_read_files)
+```
+
+* You could also pass the arguments of the function in ```lapply``` to ```lapply``` itself
+
+```{r}
+# another way
+all_files_list_3 <- lapply(files, read.delim, col.names=c("voicelessFrames", "F0", "harmonicsToNoise", "zScoreRMS", "start", "end"), sep ="\t", header = FALSE, na.strings = "--undefined--")
+```
+
+```{r}
+# check to see if output was the same
+identical(all_files_list, all_files_list_2)
+identical(all_files_list_2, all_files_list_3)
+```
+### Naming
+
+* Once we have a list of data frames, it might be nice to name the elements
+
+```{r}
+library(tidyverse)
+# use stringr package (a part of tidyverse) to find the last part of the file path (i.e. get the name of the file)
+names_of_files <- str_match(files, "[^/]+$")
+
+names(all_files_list) <- names_of_files
+```
+
+### Subsetting
+
+* Once we have a list of data frames, we might need to access elements of it by subsetting. 
+
+```{r}
+# returns the head of the first data frame created
+head(all_files_list[[1]])
+```
+```{r eval = FALSE}
+# this won't do what I want it to
+head(all_files_list[1])
+```
+
+### For loops
+
+* We can also read files in with a for loop, where objects in the environment will be created
+
+#### What is a for loop?
+```{r}
+# the basics of a for loop
+for (i in 1:5){
+  # do this thing five times
+  print(i + 2)
+}
+```
+```{r}
+list_example <- c("a", "b", "c")
+
+for (i in list_example){
+  print (i)
+}
+```
+
+### Create the loop and tell it what to repeat
+```{r}
+# sets up an iteration variable
+i <- 0
+
+# for each item (which is called 'name') in the list names, do the following things
+for (name in names_of_files){
+  # increases the iteration variable each time the loop is completed
+  i <- i+1
+  # assigns the complete filepath of the file to a variable named "filepath"
+  filepath <- file.path(files[i])
+  # assigns the results of read.delim() to the name of the file
+  assign(name, read.delim(filepath, col.names=c("voicelessFrames", "F0", "harmonicsToNoise", "zScoreRMS", "start", "end"), sep ="\t", header = FALSE, na.strings = "--undefined--"))
+}
+```
+
+## Replacing NAs in your data: Another example of ```lapply```
+
+* Say you want to replace all the NAs in your data frames in the list we just created. We can use ```lapply``` and the function ```subsituteNA``` from the package ```timeSeries```.
+
+```{r}
+library(timeSeries)
+# create a list of data frames that don't have NA
+all_files_list_wo_NA <- lapply(all_files_list, substituteNA)
+
+head(all_files_list[[1]])
+head(all_files_list_wo_NA[[1]])
+```
+
+## Computing a dissimilarity matrix: Nested for loops
+
+```{r}
+# computes a dissimilarity matrix using dynamic time warping
+
+# load in package dtw 
+library(dtw)
+
+# create a blank matrix to be populated
+result1 <- matrix(, nrow = 60, ncol = 60)
+
+# we created ```names_of_files``` earlier to give the data frames in a list names
+# now, I'm creating "sentence1" to just get data frames containing data from a certain sentence
+sentence1 <- all_files_list_wo_NA[grepl("_1_", names_of_files)]
+
+# create your function
+comp_diss_matrix <- function(sentence, result) {
+  for (i in 1:length(sentence1)) {
+    for (j in 1:i) {
+      result[i, j] <- dtw(sentence[[i]][,c(1:5)], sentence[[j]][,c(1:5)], distance.only = TRUE)$normalizedDistance
+    }
+  }
+  return(result)
+}
+
+# run the function
+result1 <- comp_diss_matrix(sentence1, result1)
+
+```
+first loop  | second loop
+------------|--------------
+1           | 1
+2           | 1, 2
+3           | 1, 2, 3
+4           | 1, 2, 3, 4
+5           | 1, 2, 3, 4, 5
+
+```{r}
+# to make it faster
+library(compiler)
+
+compiled_diss_matrix <- cmpfun(comp_diss_matrix)
+
+system.time(result1 <- compiled_diss_matrix(sentence1, result1))
+
+system.time(result1 <- comp_diss_matrix(sentence1, result1))
+
+head(result1)
+heatmap(result1, Rowv = NA, Colv = "Rowv")
+```
+
+## Subsetting data
+
+* Again, the old way is cumbersome and can lead to errors
+```{r}
+# old way
+rainbow.df <- read.delim("/Users/lisalipani/Documents/School/Graduate/Research/NSP/Output/RainbowVoicingResults.txt", header = FALSE, col.names=c("sex", "file", "word", "phone", "phone_start", "phone_end", "word_start", "word_end", "duration", "previous_phone", "next_phone", "voicing_1", "voicing_2", "voicing_3", "voicing_total"))
+
+rainbow_female_oldway <- subset(rainbow.df, rainbow.df$sex == "female")
+rainbow_male_oldway <- subset(rainbow.df, rainbow.df$sex == "male")
+# etc.
+```
+
+## Subsetting data using dplyr
+
+```{r}
+rainbow_female <- rainbow.df %>% 
+  # could also use just 'filter' here, but this will work if you have a package loaded that masks filter
+  dplyr::filter(sex == "female")
+
+head(rainbow_female)
+```
+* There's lots of ways you can subset your data and return responses
+* And there's lots of good information on how to use ```dplyr``` on this [cheatsheet](https://ugoproto.github.io/ugo_r_doc/dplyr.pdf) and [tidyverse](https://s3.amazonaws.com/assets.datacamp.com/blog_assets/Tidyverse+Cheat+Sheet.pdf) in general.
+```{r}
+# get the mean duration for the phone [t] grouped by sex
+rainbow.df %>%
+  group_by(sex) %>%
+  dplyr::filter(phone == "t") %>%
+  summarise(avg = mean(duration))
+```
+
+
+
