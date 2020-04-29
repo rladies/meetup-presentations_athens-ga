@@ -22,12 +22,7 @@ dm <- search_tweets(
 ) #### creating an object "dm" to store the data 
 
 str(dm) #### have a look at the data and variables
-is.data.frame(dm)
-write.csv(dm, "dm_mulheres_twitter.csv")
-write.table(dm, "dm_mulheres_twitter.txt", sep="\t", col.names=F)
-write.table(dm, "dm_mulheres_twitter.txt", sep="\t")
-write.csv(dm, "/Users/camilalivio/Desktop/My R projects scripts/dm_twitter.csv")
-getwd()
+
 #### A few text mining techniques to have a look at the data
 #Remeber to load the packages first!!!!
 #library(udpipe) is the package that allows you to perform text mining in *many* non-English languages 
