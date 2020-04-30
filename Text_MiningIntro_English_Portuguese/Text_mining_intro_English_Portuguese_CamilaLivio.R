@@ -81,10 +81,6 @@ example2 <- ggplot(top20, aes(x = key, y = freq, fill=key)) +
 
 example2 + theme(axis.text.x = element_text(angle = 70, hjust = 1))
 
-install.packages("devtools") 
-devtools::install_github("johannesbjork/LaCroixColoR")
-
-
 ### (EXTRA FEATURES BELOW)
 ####RAKE (Rapid Automatic Keyword Extraction) ### applying Jan Wijffels' code to the data set "dm"
 #### I really like this plot because it allows you to check out the association between words
