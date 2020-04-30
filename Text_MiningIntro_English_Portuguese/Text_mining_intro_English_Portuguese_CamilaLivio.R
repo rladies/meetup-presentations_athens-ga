@@ -62,7 +62,7 @@ example + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 #### another way to visualize the parts of the speech -- lots of nouns!
 table(x$upos)
 
-### what are the most occurring nouns? "Mulheres" is the most frequent one -- very much expected! But check out the 20 most occurring as well:
+### what are the most occurring nouns? "Mulheres" is the most frequent one -- very much expected! But check out the 20 most occurring adjectives as well:
 stats <- subset(x, upos %in% c("ADJ")) 
 stats <- txt_freq(stats$token)
 stats$key <- factor(stats$key, levels = rev(stats$key))
