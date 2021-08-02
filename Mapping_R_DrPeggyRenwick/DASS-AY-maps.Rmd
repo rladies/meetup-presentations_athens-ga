@@ -1,0 +1,177 @@
+---
+title: "Maps of /aɪ/ or AY in DASS"
+author: "Peggy Renwick"
+date: "4/15/2021"
+output: html_document
+---
+
+## Intro  
+This script is for making maps of /aɪ/ or AY in the Digital Archive of Southern Speech for an R-Ladies presentation, UGA, April 23 2021. The variable of interest is the angle of second-formant change between the 20% and 80% time points in the vowel, averaged per speaker and context, following Fox & Jacewicz (2009); see also Renwick & Stanley (2017) for similar maps and interpretation. 
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+# you may need other libraries including tidyr, tidyverse 
+```
+
+## Load in data 
+
+```{r load}
+dass_ai.df <- read.csv("/Users/peggy/sync/academic/talks/R-Ladies-Mapping-SP21/dass_AY_angle.csv")
+dass_ai.df <- droplevels(dass_ai.df)
+cities.df <- read.csv("/Users/peggy/sync/academic/talks/R-Ladies-Mapping-SP21/dass_cities.csv")
+```
+
+## Get map data 
+
+```{r get-map}
+states <- map_data("state") # this info comes from ggplot2 
+dass_states <- subset(states, region %in% c("tennessee", "georgia", "florida", "alabama", "mississippi", "louisiana", "arkansas", "texas"))
+```
+
+## Map of speakers' locations
+coded by sex, without linguistic information 
+
+```{r locations}
+
+speakers.gg <- ggplot(data = dass_states) + # map of all speakers by type 
+  geom_polygon(aes(x = long, y = lat, group = group), fill="white", color = "black") + 
+  coord_fixed(1.2) +
+  geom_point(aes(x = Longitude, y = Latitude, colour = sex, shape = sex), data = dass_ai.df, size = 2.5) +
+  theme_bw() +
+  theme(legend.position = "bottom") + 
+  ggtitle("DASS speakers") 
+speakers.gg
+ggsave("DASS-speakers.pdf", height = 5, width = 7, device = cairo_pdf) # uncomment to save 
+
+```
+
+## Map of speakers, with cities 
+coded by sex, without linguistic information 
+
+```{r add-cities}
+
+speakers2.gg <- ggplot(data = dass_states) + # map of all speakers by type 
+  geom_polygon(aes(x = long, y = lat, group = group), fill="white", color = "black") + 
+  coord_fixed(1.2) +
+  geom_text(aes(x = Longitude, y = Latitude, label = City), size = 3.5, data = cities.df) + 
+  geom_point(aes(x = Longitude, y = Latitude, colour = sex, shape = race), data = dass_ai.df, size = 2.5) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  ggtitle("DASS speakers")
+speakers2.gg
+
+```
+
+## Add linguistic info
+
+## Pre-sonorant /aɪ/
+Map of AY before sonorant consonants, in words like "mine" or "while" 
+
+```{r ai-son}
+
+# get subset of data 
+# linguistic info is added as color in the geom_point() layer 
+ai_son.df <- subset(dass_ai.df, (dass_ai.df$plt_voice=="voiced" & dass_ai.df$context=="internal" & dass_ai.df$fol_son=="sonorant"))
+
+# make map 
+ai.son <- ggplot(data = dass_states) + 
+  geom_polygon(aes(x = long, y = lat, group = group), fill="white", color = "black") + 
+  coord_fixed(1.2) +
+  geom_text(aes(x = Longitude, y = Latitude, label = City), size = 3, data = cities.df) + 
+  geom_point(aes(x = Longitude, y = Latitude, colour = mean.theta.F2, shape = race_sex), data = ai_son.df, size = 3) +
+  scale_color_gradient(low="red", high="blue", name = "Mean F2 angle (radians)") +
+  scale_shape_manual(values = c(15, 16, 17, 18), name = "Ethnicity & sex") +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  ggtitle("Mean F2 angle, before sonorants: higher value = more diphthongal") 
+ai.son
+ggsave("DASS-ai-son.pdf", height = 5, width = 7, device = cairo_pdf)
+
+# to adjust axis settings, append e.g. breaks = c(-1.0, 0, 1.0) to color command 
+
+```
+
+## Pre-voiceless /aɪ/ 
+Map of AY before voiceless consonants, in words like "might" or "white" 
+These are expected to monophthongize LESS, leading to a more diphthongal sound 
+
+```{r ai-voiceless}
+
+#get subset of data 
+ai_vlobs.df <- subset(dass_ai.df, (dass_ai.df$plt_voice=="voiceless" & dass_ai.df$context=="internal" & dass_ai.df$fol_son=="obstruent"))
+
+# make map 
+ai.vlobs <- ggplot(data = dass_states) + 
+  geom_polygon(aes(x = long, y = lat, group = group), fill="white", color = "black") + 
+  coord_fixed(1.2) +
+  geom_text(aes(x = Longitude, y = Latitude, label = City), size = 3, data = cities.df) + 
+  geom_point(aes(x = Longitude, y = Latitude, colour = mean.theta.F2, shape = race_sex), data = ai_vlobs.df, size = 3) +
+  scale_color_gradient(low="red", high="blue", name = "Mean F2 angle (radians)") +
+  scale_shape_manual(values = c(15, 16, 17, 18), name = "Ethnicity & sex") +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  ggtitle("Mean F2 angle, before voiceless obstruents: higher value = more diphthongal") 
+ai.vlobs
+ggsave("DASS-ai-vlobs.pdf", height = 5, width = 7, device = cairo_pdf)
+
+```
+
+## Pre-voiced /aɪ/ 
+Map of AY before other voiced consonants, in words like "wise" or "wide" 
+These may be realized similarly to pre-sonorant AY (because of shared voicing), or they may be realized closer to pre-voiceless AY (because of shared manner of articulation). 
+
+```{r ai-voiced-obs}
+
+# get subset of data 
+ai_vobs.df <- subset(dass_ai.df, (dass_ai.df$plt_voice=="voiced" & dass_ai.df$context=="internal" & dass_ai.df$fol_son=="obstruent"))
+
+# make map 
+# note: this map has no tick-marks. what do you think of it? 
+ai.vobs <- ggplot(data = dass_states) + 
+  geom_polygon(aes(x = long, y = lat, group = group), fill="white", color = "black") + 
+  coord_fixed(1.2) +
+  geom_text(aes(x = Longitude, y = Latitude, label = City), size = 3, data = cities.df) + 
+  geom_point(aes(x = Longitude, y = Latitude, colour = mean.theta.F2, shape = race_sex), data = ai_vobs.df, size = 3) +
+  scale_color_gradient(low="red", high="blue", name = "Mean F2 angle (radians)") +
+  scale_shape_manual(values = c(15, 16, 17, 18), name = "Ethnicity & sex") +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  theme(axis.title = element_blank(), axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(), panel.grid = element_blank()) +
+  ggtitle("Mean F2 angle, before voiced obstruents: higher value = more diphthongal") 
+ai.vobs
+
+```
+
+## Final /aɪ/ 
+Map of AY in word-final position, in words like "my" and "high" 
+We expect this context to show monophthongization to /aː/ 
+
+```{r ai-final}
+
+# get subset of data 
+ai_final.df <- subset(dass_ai.df, (dass_ai.df$context=="final"))
+
+# make map 
+ai.final <- ggplot(data = dass_states) + 
+  geom_polygon(aes(x = long, y = lat, group = group), fill="white", color = "black") + 
+  coord_fixed(1.2) +
+  geom_text(aes(x = Longitude, y = Latitude, label = City), size = 3, data = cities.df) + 
+  geom_point(aes(x = Longitude, y = Latitude, colour = mean.theta.F2, shape = race_sex), data = ai_final.df, size = 3) +
+  scale_color_gradient(low="red", high="blue", name = "Mean F2 angle (radians)") +
+  scale_shape_manual(values = c(15, 16, 17, 18), name = "Ethnicity & sex") +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  theme(axis.title = element_blank(), axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank(), panel.grid = element_blank()) +
+  ggtitle("Mean F2 angle, final position: higher value = more diphthongal") 
+ai.final
+
+```
+
+# What do you observe across the four maps? 
+
+## References 
+Fox, Robert Allen & Ewa Jacewicz. 2009. Cross-dialectal variation in formant dynamics of American English vowels. The Journal of the Acoustical Society of America 126(5). 2603–2618. https://doi.org/10.1121/1.3212921.
+
+Renwick, Margaret E. L. & Joseph A. Stanley. 2017. Static and dynamic approaches to vowel shifting in the Digital Archive of Southern Speech. Proceedings of Meetings on Acoustics 30(1). 060003. https://doi.org/10.1121/2.0000582.
+
